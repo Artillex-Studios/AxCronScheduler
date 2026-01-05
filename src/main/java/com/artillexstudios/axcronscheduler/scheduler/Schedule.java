@@ -15,8 +15,14 @@ import org.jetbrains.annotations.Nullable;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class Schedule {
     private final SecondParameter secondParameter;
@@ -28,6 +34,9 @@ public class Schedule {
     private TimeZone timeZone;
     private ZonedDateTime zdt;
     private List<Parameter> parameters = new ArrayList<>();
+    private ScheduledFuture<?> future = null;
+    private Map<Duration, Runnable> warnings = new HashMap<>();
+    private Map<ZonedDateTime, Runnable> calculatedWarnings = new HashMap<>();
 
     public Schedule(@Nullable SecondParameter secondParameter,
                     @NotNull MinuteParameter minuteParameter,
@@ -70,7 +79,7 @@ public class Schedule {
         int nextLeapYear = CronUtils.getNextLeapYear(timeZone);
         ZonedDateTime maxTime = ZonedDateTime.of(nextLeapYear, 2, 29, 23, 59, 59, 0, timeZone.toZoneId());
 
-        long searchStart = System.currentTimeMillis();
+//        long searchStart = System.currentTimeMillis();
         // search for next matching time
         outer: while (true) {
             // the max next run time using the cron syntax would be the last second of February during the next leap year
@@ -88,14 +97,63 @@ public class Schedule {
             }
             break;
         }
-        System.out.println("next run: %s (found in %sms)".formatted(zdt, System.currentTimeMillis() - searchStart));
+//        System.out.println("next run: %s (found in %sms)".formatted(zdt, System.currentTimeMillis() - searchStart));
+    }
+
+    private void calculateWarnings() {
+        calculatedWarnings.clear();
+        for (Map.Entry<Duration, Runnable> entry : warnings.entrySet()) {
+            ZonedDateTime warnTime = zdt.minus(entry.getKey());
+            if (System.currentTimeMillis() >= warnTime.toInstant().toEpochMilli()) {
+                continue;
+            }
+            calculatedWarnings.put(warnTime, entry.getValue());
+        }
+    }
+
+    public void setEarlyWarning(Duration duration, Runnable runnable) {
+        warnings.put(duration, runnable);
+        calculateWarnings();
+    }
+
+    public void removeEarlyWarning(Duration duration) {
+        warnings.remove(duration);
+        calculateWarnings();
+    }
+
+    public void clearWarnings() {
+        warnings.clear();
+        calculatedWarnings.clear();
+    }
+
+    public void start(ScheduledExecutorService executor, Runnable runnable) {
+        stop();
+        future = executor.scheduleAtFixedRate(() -> {
+            for (Iterator<Map.Entry<ZonedDateTime, Runnable>> it = calculatedWarnings.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<ZonedDateTime, Runnable> entry = it.next();
+                if (System.currentTimeMillis() >= entry.getKey().toInstant().toEpochMilli()) {
+                    entry.getValue().run();
+                    it.remove();
+                }
+            }
+            if (System.currentTimeMillis() >= zdt.toInstant().toEpochMilli()) {
+                calculateNextRunTime();
+                calculateWarnings();
+                runnable.run();
+            }
+        }, 1, 1, TimeUnit.SECONDS);
+    }
+
+    public void stop() {
+        if (future == null) return;
+        future.cancel(true);
     }
 
     public ZonedDateTime getNextRunTime() {
         return zdt;
     }
 
-    public void addWarningBefore(int amount, Duration duration) {
-
+    public long getNextRunTimeMillis() {
+        return zdt.toInstant().toEpochMilli();
     }
 }
