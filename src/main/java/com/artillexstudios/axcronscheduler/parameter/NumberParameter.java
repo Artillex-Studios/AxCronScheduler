@@ -2,6 +2,7 @@ package com.artillexstudios.axcronscheduler.parameter;
 
 import com.artillexstudios.axcronscheduler.enums.CronPart;
 import com.artillexstudios.axcronscheduler.exception.InvalidCronException;
+import com.artillexstudios.axcronscheduler.utils.CronUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,14 +14,10 @@ import java.util.List;
 // 1-5
 // */2, 5/2
 public abstract class NumberParameter {
-    private final Collection<Integer> numbers = new HashSet<>();
-    private final CronPart cronPart;
-    private final int minValue;
-    private final int maxValue;
-
-    public Collection<Integer> getNumbers() {
-        return numbers;
-    }
+    protected final Collection<Integer> numbers = new HashSet<>();
+    protected final CronPart cronPart;
+    protected final int minValue;
+    protected final int maxValue;
 
     public NumberParameter(CronPart cronPart, int minValue, int maxValue, String value) {
         this.cronPart = cronPart;
@@ -34,17 +31,15 @@ public abstract class NumberParameter {
             return;
         }
 
-        // support for MON,TUE
         String[] split = value.split(",");
         for (String element : split) {
-            // support for SAT-SUN
             if (element.contains("-")) {
                 String[] split2 = element.split("-");
                 if (split2.length != 2) {
                     throw new InvalidCronException("[%s] %s is not a valid range".formatted(cronPart, value));
                 }
-                int start = parseNumber(split2[0]);
-                int end = parseNumber(split2[1]);
+                int start = CronUtils.parseNumber(cronPart, split2[0]);
+                int end = CronUtils.parseNumber(cronPart, split2[1]);
                 numbers.addAll(getNumbersInBetween(start, end));
                 continue;
             }
@@ -53,18 +48,10 @@ public abstract class NumberParameter {
                 if (split2.length != 2) {
                     throw new InvalidCronException("[%s] %s is not a valid value".formatted(cronPart, value));
                 }
-                numbers.addAll(getNumbersSlashed(split2[0], parseNumber(split2[1])));
+                numbers.addAll(getNumbersSlashed(split2[0], CronUtils.parseNumber(cronPart, split2[1])));
                 continue;
             }
-            numbers.add(parseNumber(element));
-        }
-    }
-
-    private int parseNumber(String value) {
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            throw new InvalidCronException("[%s] %s is not a valid integer".formatted(cronPart, value));
+            numbers.add(CronUtils.parseNumber(cronPart, element));
         }
     }
 
@@ -84,7 +71,7 @@ public abstract class NumberParameter {
         if (initial.equals("*")) {
             start = 0;
         } else {
-            start = parseNumber(initial);
+            start = CronUtils.parseNumber(cronPart, initial);
         }
 
         for (int i = start; i <= maxValue; i += increment) {

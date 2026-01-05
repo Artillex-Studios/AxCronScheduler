@@ -3,8 +3,10 @@ package com.artillexstudios.axcronscheduler.parameter.impl;
 import com.artillexstudios.axcronscheduler.enums.CronPart;
 import com.artillexstudios.axcronscheduler.exception.InvalidCronException;
 import com.artillexstudios.axcronscheduler.parameter.Parameter;
+import com.artillexstudios.axcronscheduler.utils.CronUtils;
 
 import java.time.Month;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,16 +19,13 @@ import java.util.Set;
 // 1-12
 // JUN,JUL,AUG
 // SEP-OCT,MAY-JULY
+// */2, 4/2
 public class MonthParameter implements Parameter {
     private final Collection<Month> months = new HashSet<>();
 
     @Override
     public CronPart getCronPart() {
         return CronPart.MONTH;
-    }
-
-    public Collection<Month> getMonths() {
-        return months;
     }
 
     public MonthParameter(String value) {
@@ -36,10 +35,8 @@ public class MonthParameter implements Parameter {
             return;
         }
 
-        // support for MON,TUE
         String[] split = value.split(",");
         for (String element : split) {
-            // support for SAT-SUN
             if (element.contains("-")) {
                 String[] split2 = element.split("-");
                 if (split2.length != 2) {
@@ -116,5 +113,21 @@ public class MonthParameter implements Parameter {
             if (added >= Month.values().length) break;
         }
         return list;
+    }
+
+    @Override
+    public boolean isValid(ZonedDateTime zdt) {
+        return months.contains(zdt.getMonth());
+    }
+
+    @Override
+    public ZonedDateTime nextValid(ZonedDateTime zdt) {
+        for (int i = 0; i < Month.values().length; i++) {
+            zdt = zdt.plusMonths(1);
+            if (isValid(zdt)) {
+                return CronUtils.resetTimeUnits(zdt, true, true, true, true, true);
+            }
+        }
+        throw new InvalidCronException("[%s] invalid value".formatted(getCronPart()));
     }
 }

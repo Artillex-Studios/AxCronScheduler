@@ -3,8 +3,10 @@ package com.artillexstudios.axcronscheduler.parameter.impl;
 import com.artillexstudios.axcronscheduler.enums.CronPart;
 import com.artillexstudios.axcronscheduler.exception.InvalidCronException;
 import com.artillexstudios.axcronscheduler.parameter.Parameter;
+import com.artillexstudios.axcronscheduler.utils.CronUtils;
 
 import java.time.DayOfWeek;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,10 +39,8 @@ public class WeekdayParameter implements Parameter {
             return;
         }
 
-        // support for MON,TUE
         String[] split = value.split(",");
         for (String element : split) {
-            // support for SAT-SUN
             if (element.contains("-")) {
                 String[] split2 = element.split("-");
                 if (split2.length != 2) {
@@ -117,5 +117,21 @@ public class WeekdayParameter implements Parameter {
     private int getSundayStartValue(DayOfWeek dayOfWeek) {
         if (dayOfWeek == DayOfWeek.SUNDAY) return 0;
         return dayOfWeek.getValue();
+    }
+
+    @Override
+    public boolean isValid(ZonedDateTime zdt) {
+        return days.contains(zdt.getDayOfWeek());
+    }
+
+    @Override
+    public ZonedDateTime nextValid(ZonedDateTime zdt) {
+        for (int i = 0; i < DayOfWeek.values().length; i++) {
+            zdt = zdt.plusDays(1);
+            if (isValid(zdt)) {
+                return CronUtils.resetTimeUnits(zdt, true, true, true, true, false);
+            }
+        }
+        throw new InvalidCronException("[%s] invalid value".formatted(getCronPart()));
     }
 }
