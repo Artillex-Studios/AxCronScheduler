@@ -79,13 +79,17 @@ public class Schedule {
         int nextLeapYear = CronUtils.getNextLeapYear(timeZone);
         ZonedDateTime maxTime = ZonedDateTime.of(nextLeapYear, 2, 29, 23, 59, 59, 0, timeZone.toZoneId());
 
-//        long searchStart = System.currentTimeMillis();
+        long searchStart = System.currentTimeMillis();
         // search for next matching time
+        int loops = 0;
         outer: while (true) {
+            if (loops++ >= 1024) {
+                throw new InvalidCronException("invalid cron syntax (search limit reached)");
+            }
             // the max next run time using the cron syntax would be the last second of February during the next leap year
             // so if we still didn't find the time, then the syntax is 100% invalid
             if (zdt.isAfter(maxTime)) {
-                throw new InvalidCronException("invalid cron syntax");
+                throw new InvalidCronException("invalid cron syntax (max date reached)");
             }
             for (Parameter parameter : parameters) {
                 boolean valid = parameter.isValid(zdt);
@@ -97,7 +101,7 @@ public class Schedule {
             }
             break;
         }
-//        System.out.println("next run: %s (found in %sms)".formatted(zdt, System.currentTimeMillis() - searchStart));
+        System.out.println("next run: %s (found in %sms, %s loops)".formatted(zdt, System.currentTimeMillis() - searchStart, loops));
     }
 
     private void calculateWarnings() {

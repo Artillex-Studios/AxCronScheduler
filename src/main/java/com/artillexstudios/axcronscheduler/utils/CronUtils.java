@@ -29,11 +29,11 @@ public class CronUtils {
 
     // resets the enabled (true) time units to their lowest value
     public static ZonedDateTime resetTimeUnits(ZonedDateTime zdt, boolean nanos, boolean seconds, boolean minutes, boolean hours, boolean days) {
-        if (nanos) zdt = zdt.minusNanos(zdt.getNano());
-        if (seconds) zdt = zdt.minusSeconds(zdt.getSecond());
-        if (minutes) zdt = zdt.minusMinutes(zdt.getMinute());
-        if (hours) zdt = zdt.minusHours(zdt.getHour());
-        if (days) zdt = zdt.minusDays(zdt.getDayOfMonth() - 1);
+        if (nanos) zdt = zdt.withNano(0);
+        if (seconds) zdt = zdt.withSecond(0);
+        if (minutes) zdt = zdt.withMinute(0);
+        if (hours) zdt = zdt.withHour(0);
+        if (days) zdt = zdt.withDayOfMonth(1);
         return zdt;
     }
 }
