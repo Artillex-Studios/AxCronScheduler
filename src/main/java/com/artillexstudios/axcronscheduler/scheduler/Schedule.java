@@ -101,7 +101,7 @@ public class Schedule {
             }
             break;
         }
-        System.out.println("next run: %s (found in %sms, %s loops)".formatted(zdt, System.currentTimeMillis() - searchStart, loops));
+//        System.out.println("next run: %s (found in %sms, %s loops)".formatted(zdt, System.currentTimeMillis() - searchStart, loops));
     }
 
     private void calculateWarnings() {
