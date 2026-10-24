@@ -11,7 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 // this class is used for testing, it is not part of the library
 public class AxCronScheduler {
-    private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+//    private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     public static void main(String[] args) {
 //        CronParser.createScheduler("* * * 31 feb-dec *");
@@ -39,13 +39,17 @@ public class AxCronScheduler {
 //        schedule.start(executor, () -> {
 //            System.out.println("execute! " + ZonedDateTime.now());
 //        });
-//
+
 //        CronParser.createScheduler("* * * DEC-FEB *");
-//
+
 //        CronParser.createScheduler("5/30 * * * * 1/2");
-//
+
 //        CronParser.createScheduler("* * * * * */2");
 //
 //        CronParser.createScheduler("0 14-22/2 * * *");
+
+//        CronParser.createScheduler("1,2,3 1-5,10-15 * * 1/2");
+//        CronParser.createScheduler("1-5/2 10-15 10/3 * * 1/2");
+//        CronParser.createScheduler("*/2 */5 */5 * * 1/2");
     }
 }

@@ -13,6 +13,7 @@ import java.util.List;
 // 1,2,3,4,5
 // 1-5
 // */2, 5/2
+// 14-22/2
 public abstract class NumberParameter {
     protected final Collection<Integer> numbers = new HashSet<>();
     protected final CronPart cronPart;
@@ -33,50 +34,58 @@ public abstract class NumberParameter {
 
         String[] split = value.split(",");
         for (String element : split) {
-            if (element.contains("-")) {
-                String[] split2 = element.split("-");
-                if (split2.length != 2) {
-                    throw new InvalidCronException("[%s] %s is not a valid range".formatted(cronPart, value));
-                }
-                int start = CronUtils.parseNumber(cronPart, split2[0]);
-                int end = CronUtils.parseNumber(cronPart, split2[1]);
-                numbers.addAll(getNumbersInBetween(start, end));
-                continue;
-            }
+            int slash = 1;
             if (element.contains("/")) {
                 String[] split2 = element.split("/");
                 if (split2.length != 2) {
                     throw new InvalidCronException("[%s] %s is not a valid value".formatted(cronPart, value));
                 }
-                numbers.addAll(getNumbersSlashed(split2[0], CronUtils.parseNumber(cronPart, split2[1])));
-                continue;
+                element = split2[0];
+                slash = CronUtils.parseNumber(cronPart, split2[1]);
             }
-            numbers.add(CronUtils.parseNumber(cronPart, element));
+
+            Integer start;
+            Integer end = null;
+            if (element.contains("-")) {
+                String[] split2 = element.split("-");
+                if (split2.length != 2) {
+                    throw new InvalidCronException("[%s] %s is not a valid range".formatted(cronPart, value));
+                }
+                start = split2[0].equals("*") ? null : CronUtils.parseNumber(cronPart, split2[0]);
+                end = CronUtils.parseNumber(cronPart, split2[1]);
+            } else {
+                start = element.equals("*") ? null : CronUtils.parseNumber(cronPart, element);
+                // support for values like 14/2 (which is every second hour between 14-23)
+                if (slash > 1) {
+                    end = getMaxValue(cronPart);
+                }
+            }
+            numbers.addAll(getNumbers(start, end, slash));
         }
     }
 
-    private List<Integer> getNumbersInBetween(int start, int end) {
+    // if start is null, that means that all valid numbers should be returned
+    // if end is null, that means that the max value should be used
+    private List<Integer> getNumbers(Integer start, Integer end, int slash) {
         List<Integer> list = new ArrayList<>();
-        while (true) {
-            list.add(start);
-            if (start == end) break;
-            start++;
-        }
-        return list;
-    }
-
-    private List<Integer> getNumbersSlashed(String initial, int increment) {
-        List<Integer> list = new ArrayList<>();
-        int start;
-        if (initial.equals("*")) {
+        if (start == null) {
             start = 0;
-        } else {
-            start = CronUtils.parseNumber(cronPart, initial);
+            end = getMaxValue(cronPart);
         }
-
-        for (int i = start; i <= maxValue; i += increment) {
+        if (end == null) end = start;
+        int idx = 0;
+        for (int i = start; i <= end; i++) {
+            if (idx++ % slash != 0) continue;
             list.add(i);
         }
         return list;
+    }
+
+    private int getMaxValue(CronPart cronPart) {
+        return switch (cronPart) {
+            case SECOND, MINUTE -> 59;
+            case HOUR -> 23;
+            default -> throw new InvalidCronException("[%s] not a valid cron part".formatted(cronPart));
+        };
     }
 }

@@ -27,7 +27,7 @@ public class DayParameter extends NumberParameter implements Parameter {
     @Override
     public ZonedDateTime nextValid(ZonedDateTime zdt) {
         // todo: don't search impossible years and impossible months
-        // for days, we have to use 1461 to support leap years
+        // for days, we have to use 1461 (365 * 4 + 1) to support leap years
         for (int i = 0; i < 1461; i++) {
             zdt = zdt.plusDays(1);
             if (isValid(zdt)) {

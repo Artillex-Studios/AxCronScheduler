@@ -16,6 +16,8 @@ https://repo.artillex-studios.com/#/releases/com/artillexstudios/axcronscheduler
 
 `5/10 * * * *` every 10 minutes with a 5 minute offset
 
+`5-30/10 * * * *` every 10 minutes between minute 5 and 30
+
 `* * * 1-6 *` runs every minute in the first half of the year
 
 `* * * JAN,DEC *` runs every minute during january and december
